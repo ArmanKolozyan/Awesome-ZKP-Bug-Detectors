@@ -5,12 +5,12 @@ A collection of awesome Zero-Knowledge Proof (ZKP) bug detection tools, includin
 
 | Tool             | Target   | Analysis   | Explanation                          | Documentation     | Code     |
 |------------------|----------|------------|--------------------------------------|-------------------|----------|
-| Circomspect      |          |            | [Circomspect](#Circomspect)          |                   |          |
-| ZKAP             |          |            | [ZKAP](#ZKAP)                        |                   |          |
-| Picus            |          |            | [Picus](#Picus)                      |                   |          |
-| Coda             |          |            | [Coda](#Coda)                        |                   |          |
-| QED<sup>2</sup>  |          |            | [QED<sup>2</sup>](#QED<sup>2</sup>)  |                   |          |
-| Signal Tagging   |          |            | [Signal Tagging](#Signal-Tagging)    |                   |          |
+| Circomspect      |          |            | [Circomspect](#circomspect)          |                   |          |
+| ZKAP             |          |            | [ZKAP](#zkap)                        |                   |          |
+| Picus            |          |            | [Picus](#picus)                      |                   |          |
+| Coda             |          |            | [Coda](#coda)                        |                   |          |
+| QED<sup>2</sup>  |          |            | [QED<sup>2</sup>](#qed2)             |                   |          |
+| Signal Tagging   |          |            | [Signal Tagging](#signal-tagging)    |                   |          |
 
 
 
