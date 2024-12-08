@@ -174,7 +174,7 @@ ZKAP identifies a wide range of vulnerabilities, including:
 
 ### Analysis Technique
 
-### Circuit Dependence Graph (CDG)
+#### Circuit Dependence Graph (CDG)
 
 ZKAP uses a *Circuit Dependence Graph (CDG)* to model the internal relationships within Circom circuits. The CDG incorporates:
 
@@ -190,16 +190,16 @@ At a high level, a data flow edge from *v* to *u* labeled by *s* indicates that 
 assignment to *u* of an expression *s* containing *v*. Similarly, a constraint edge between *u* and *v* labeled *s* indicates that there is an equation *s* directly relating *u* and *v*.
 (The above description is wrong in the paper, I corrected it here.)
 
-### Vulnerability Description Language (VDL)
+#### Vulnerability Description Language (VDL)
 
 ZKAP introduces the *Vulnerability Description Language (VDL)*, allowing users to define vulnerability patterns at the semantic level over the CDG representation.
 
-#### How VDL Works
+##### How VDL Works
 
 1. **Custom Patterns**: VDL allows users to describe, in Datalog-like syntax, vulnerabilities as patterns in the CDG, such as unconstrained outputs or mismatches between input signals and constraints.  
 2. **Semantic Matching**: ZKAP matches these patterns against the CDG to detect issues, such as *Unconstrained Circuit Outputs (UCO)* or *Dataflow-Constraint Discrepancies (DCD)*.  
 
-#### Example
+##### Example
 
 A VDL pattern to identify *Unconstrained Circuit Outputs (UCO)* could be:
 ```vdlang
