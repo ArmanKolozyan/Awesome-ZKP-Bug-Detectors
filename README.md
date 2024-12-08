@@ -8,7 +8,7 @@ A collection of awesome Zero-Knowledge Proof (ZKP) bug detection tools, includin
 | -------------- | -------- | ------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Circomspect    | Circom   | Taint Analysis            | [Circomspect](#circomspect)       | [blog](https://blog.trailofbits.com/2022/09/15/it-pays-to-be-circomspect/)                | [repository](https://github.com/trailofbits/circomspect) |
 | ZKAP           | Circom   | Semantic Pattern Matching | [ZKAP](#zkap)                     | [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/wen)              | [repository](https://github.com/whbjzzwjxq/ZKAP)         |
-| Picus          | Circuits | UCP & SMT                 | [Picus](#picus)                   | [paper](https://dl.acm.org/doi/10.1145/3591282)                                           |     [repository](https://github.com/Veridise/Picus)                                                     |
+| Picus          | Circuits | UCP & SMT                 | [Picus](#picus)                   | [paper](https://dl.acm.org/doi/10.1145/3591282)                                           | [repository](https://github.com/Veridise/Picus)          |
 | Coda           |          |                           | [Coda](#coda)                     | [paper](https://www.computer.org/csdl/proceedings-article/sp/2024/313000a078/1RjEaNkBQIg) |                                                          |
 | Signal Tagging |          |                           | [Signal Tagging](#signal-tagging) | [docs](https://docs.circom.io/circom-language/tags/)                                      |                                                          |
 
@@ -231,7 +231,7 @@ Using these predicates, an output signal is classified as unconstrained if it is
 
 2. _High Precision and Recall_: ZKAP’s semantic approach minimises false positives and negatives, achieving superior precision (82.4%) and recall (96.6%).
 
-3. _Evaluation_: Tested on 258 Circom circuits_ across 17 projects, ZKAP identified _32 previously unknown vulnerabilities_.
+3. _Evaluation_: Tested on 258 Circom circuits* across 17 projects, ZKAP identified \_32 previously unknown vulnerabilities*.
 
 ---
 
@@ -261,10 +261,10 @@ UCP is a static analysis phase that iteratively propagates constraints through t
 
 In addition to the basic rules, Picus employs more complex inference rules to handle intricate relationships between variables. One important example is the **Assign Rule**:
 
-- If the circuit contains an equation of the form $ c \cdot x - e = 0$, and:
-  - *e* is inferred to be constrained.
+- If the circuit contains an equation of the form $c \cdot x - e = 0$, and:
+  - _e_ is inferred to be constrained.
   - $c \neq 0$ (a non-zero constant).
-- Then, *x* can also be inferred to be constrained because the equation can be rewritten as $ x = c^{-1} \cdot e $   
+- Then, _x_ can also be inferred to be constrained because the equation can be rewritten as $x = c^{-1} \cdot e$
 
 ##### How UCP Propagates Constraints
 
@@ -275,8 +275,8 @@ In addition to the basic rules, Picus employs more complex inference rules to ha
      - Constants, which are inherently constrained.
 
 2. **Recursive Application of Rules**:
-   - UCP applies rules such as the *Op* rule to propagate constraints through the circuit:
-     - If _e1_ and _e2_ are constrained, their combined result _e = e1 $\oplus$ e2_ is also constrained.
+   - UCP applies rules such as the _Op_ rule to propagate constraints through the circuit:
+     - If _e1_ and _e2_ are constrained, their combined result _e = e1_ $\oplus$ _e2_ is also constrained.
 
 ##### Limitations
 
@@ -291,54 +291,60 @@ When UCP cannot constrain all variables, Picus invokes an SMT solver to formally
 ##### How the SMT Solver Works:
 
 1. **Duplicate Circuit Representation**:
-   - To verify whether a variable *v* is constrained, Picus encodes **two copies of the circuit**:
-     - The first copy uses the original variables *V*.
-     - The second copy uses a duplicate set of variables *V'*.
+
+   - To verify whether a variable _v_ is constrained, Picus encodes **two copies of the circuit**:
+     - The first copy uses the original variables _V_.
+     - The second copy uses a duplicate set of variables _V'_.
    - The SMT solver is tasked with determining whether any two satisfying assignments that agree on the input variables also agree on 𝑣 (i.e., v = v').
 
 2. **Strengthening with Constrained Variables**:
-   - Variables that have already been proven constrained by UCP (belonging to the set *K*) are used to strengthen the query. Specifically:
-     - For each *u $\in$ K*, the SMT query adds a condition *u = u'*.
+
+   - Variables that have already been proven constrained by UCP (belonging to the set _K_) are used to strengthen the query. Specifically:
+     - For each _u_ $\in$ _K_, the SMT query adds a condition _u = u'_.
 
 3. **SMT Query Formulation**:
+
    - The SMT solver is given the following query:
      - $\Phi \land \Phi' \land \bigwedge_{u \in K} (u = u') \implies (v = v')$,
-     where:
-       - $\Phi$: The circuit's constraints with the original variables *V*.
-       - $\Phi'$: The circuit's constraints with the duplicate variables *V'*.
+       where:
+       - $\Phi$: The circuit's constraints with the original variables _V_.
+       - $\Phi'$: The circuit's constraints with the duplicate variables _V'_.
        - $\bigwedge_{u \in K} (u = u')$: Strengthening conditions for variables already proven constrained.
-     - The solver verifies whether this implication holds. If true, *v* is uniquely constrained.
+     - The solver verifies whether this implication holds. If true, _v_ is uniquely constrained.
 
 4. **Encoding Value Information**:
-   - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable *w*, its possible values are partitioned into intervals *(l, u)*, so that the solver checks only valid ranges:
-     - For example, if *w* can take values in the range *[1, 10]*, the solver includes constraints $1 \leq w \leq 10$.
+   - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable _w_, its possible values are partitioned into intervals _(l, u)_, so that the solver checks only valid ranges:
+     - For example, if _w_ can take values in the range _[1, 10]_, the solver includes constraints $1 \leq w \leq 10$.
    - These intervals are encoded as disjunctions for efficiency, allowing the SMT solver to focus on feasible solutions.
 
 #### 3. Value Inference
 
-Value inference is used to narrow the possible values for variables in the circuit. This information is for example leveraged during SMT-based reasoning to simplify queries and improve efficiency.  Rules like the **Assign Rule** and **Op Rule** are used for this.
+Value inference is used to narrow the possible values for variables in the circuit. This information is for example leveraged during SMT-based reasoning to simplify queries and improve efficiency. Rules like the **Assign Rule** and **Op Rule** are used for this.
 
 ##### Assign Rule
+
 The **Assign Rule** is applied when a circuit contains an equation of the form:
 
 $c \cdot x - e = 0 \quad \text{where} \quad c \neq 0.$
 
-When we rearrange the equation to isolate *x*, we get:
+When we rearrange the equation to isolate _x_, we get:
 $x = c^{-1} \cdot e$
 
-This implies that the possible values for *x* are derived by multiplying the values of *e* by the inverse of *c*.
+This implies that the possible values for _x_ are derived by multiplying the values of _e_ by the inverse of _c_.
 
 ##### Op Rule
+
 If:
-1. *e1* has a set of possible values $\Omega_1$,
-2. *e2* has a set of possible values $\Omega_2$,
+
+1. _e1_ has a set of possible values $\Omega_1$,
+2. _e2_ has a set of possible values $\Omega_2$,
 
 Then:
 
 $e1 \oplus e2$ has a set of possible values:
-  $\{v1 \oplus v2 \mid (v1, v2) \in \Omega_1 \times \Omega_2\}$
+$\{v1 \oplus v2 \mid (v1, v2) \in \Omega_1 \times \Omega_2\}$
 
-This means that the possible values of $e1 \oplus e2$ are obtained by applying the operator $\oplus$ to all pairs *(v1, v2)* where $v1 \in \Omega_1$ and $v2 \in \Omega_2$.
+This means that the possible values of $e1 \oplus e2$ are obtained by applying the operator $\oplus$ to all pairs _(v1, v2)_ where $v1 \in \Omega_1$ and $v2 \in \Omega_2$.
 
 ### Integration of UCP and SMT Solver
 
