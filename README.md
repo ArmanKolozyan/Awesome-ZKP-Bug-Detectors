@@ -12,9 +12,7 @@ A collection of awesome Zero-Knowledge Proof (ZKP) bug detection tools, includin
 | Coda           |        |                | [Coda](#coda)                     | [paper](https://www.computer.org/csdl/proceedings-article/sp/2024/313000a078/1RjEaNkBQIg) |      |
 | Signal Tagging |        |                | [Signal Tagging](#signal-tagging) | [docs](https://docs.circom.io/circom-language/tags/)                                      |      |
 
-## Explanations
-
-### Circomspect
+## Circomspect
 
 Circomspect is a static analyzer and linter for Circom. It performs multiple analysis passes to detect issues like unused and under-constrained signals.
 For a list of all the analysis passes, please refer to the [official documentation](https://github.com/trailofbits/circomspect/blob/ece9efe0a21e6c422a43ab6f2e1c0ce99678013b/doc/analysis_passes.md).
@@ -24,7 +22,7 @@ Below, we focus on the two main analysis techniques: Constraint Analysis and Tai
 
 Constraint Analysis is implemented in [`constraint_analysis.rs`](https://github.com/trailofbits/circomspect/blob/main/program_analysis/src/constraint_analysis.rs). The goal is to build a _Constraint Map_, which tracks how signals (variables) in the circuit are related through constraints. It maps a variable to other variables that it influences through constraints. Such a map is useful because it enables the identification of variables that impact critical elements, such as output signals.
 
-### Key Steps
+#### Key Steps
 
 1. **Single-Step Constraints**:
    - Captures direct constraints between variables, such as `a === b + c`.
@@ -63,7 +61,7 @@ Taint analysis thus also considers constructs like *substitutions* (`<--`), wher
 Taint Analysis is implemented in [`taint_analysis.rs`](https://github.com/trailofbits/circomspect/blob/main/program_analysis/src/taint_analysis.rs).
 It tracks how values propagate through the circuit via a _Taint Map_. That map is used to ensure all constraints and outputs are correctly influenced by inputs or other constrained variables.
 
-### Key Steps
+#### Key Steps
 
 1. **Taint Mapping**:
 
@@ -149,10 +147,18 @@ Both analyses are essential: taint analysis captures the flow of data, while con
 
 ---
 
-### ZKAP
+## ZKAP
 
-### Picus
 
-### Coda
 
-### Signal Tagging
+---
+
+## Picus
+
+---
+
+## Coda
+
+---
+
+## Signal Tagging
