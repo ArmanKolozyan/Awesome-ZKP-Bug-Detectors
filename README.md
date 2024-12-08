@@ -257,13 +257,13 @@ UCP is a static analysis phase that iteratively propagates constraints through t
    - Constants are inherently constrained because their values are fixed and independent of other variables.
 
 3. **Op Rule**:
-   - If a more complex expression _e_ is defined as _e1 $\oplus$ e2_, where $\oplus$ is an arithmetic or logical operator (e.g., addition, multiplication), then _e_ is constrained if both _e1_ and _e2_ are constrained.
+   - If a more complex expression _e_ is defined as _e1_ $\oplus$ _e2_, where $\oplus$ is an arithmetic or logical operator (e.g., addition, multiplication), then _e_ is constrained if both _e1_ and _e2_ are constrained.
 
 In addition to the basic rules, Picus employs more complex inference rules to handle intricate relationships between variables. One important example is the **Assign Rule**:
 
-- If the circuit contains an equation of the form *$ c \cdot x - e = 0$*, and:
+- If the circuit contains an equation of the form $ c \cdot x - e = 0$, and:
   - *e* is inferred to be constrained.
-  - *$c \neq 0$* (a non-zero constant).
+  - $c \neq 0$ (a non-zero constant).
 - Then, *x* can also be inferred to be constrained because the equation can be rewritten as $ x = c^{-1} \cdot e $   
 
 ##### How UCP Propagates Constraints
@@ -278,7 +278,7 @@ In addition to the basic rules, Picus employs more complex inference rules to ha
    - UCP applies rules such as the *Op* rule to propagate constraints through the circuit:
      - If _e1_ and _e2_ are constrained, their combined result _e = e1 $\oplus$ e2_ is also constrained.
 
-##### Limitations of UCP:
+##### Limitations
 
 The paper explicitly states that **UCP alone cannot solve all under-constrained problems** because it cannot identify **pairs of witnesses** that demonstrate under-constrained behavior.
 
@@ -302,16 +302,16 @@ When UCP cannot constrain all variables, Picus invokes an SMT solver to formally
 
 3. **SMT Query Formulation**:
    - The SMT solver is given the following query:
-     - *$\Phi \land \Phi' \land \bigwedge_{u \in K} (u = u') \implies (v = v')$*,
+     - $\Phi \land \Phi' \land \bigwedge_{u \in K} (u = u') \implies (v = v')$,
      where:
-       - *$\Phi$*: The circuit's constraints with the original variables *V*.
-       - *$\Phi'$*: The circuit's constraints with the duplicate variables *V'*.
-       - *$\bigwedge_{u \in K} (u = u')$*: Strengthening conditions for variables already proven constrained.
+       - $\Phi$: The circuit's constraints with the original variables *V*.
+       - $\Phi'$: The circuit's constraints with the duplicate variables *V'*.
+       - $\bigwedge_{u \in K} (u = u')$: Strengthening conditions for variables already proven constrained.
      - The solver verifies whether this implication holds. If true, *v* is uniquely constrained.
 
 4. **Encoding Value Information**:
    - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable *w*, its possible values are partitioned into intervals *(l, u)*, so that the solver checks only valid ranges:
-     - For example, if *w* can take values in the range *[1, 10]*, the solver includes constraints *$1 \leq w \leq 10$*.
+     - For example, if *w* can take values in the range *[1, 10]*, the solver includes constraints $1 \leq w \leq 10$.
    - These intervals are encoded as disjunctions for efficiency, allowing the SMT solver to focus on feasible solutions.
 
 #### 3. Value Inference
@@ -330,15 +330,15 @@ This implies that the possible values for *x* are derived by multiplying the val
 
 ##### Op Rule
 If:
-1. *e1* has a set of possible values *$\Omega_1$*,
-2. *e2* has a set of possible values *$\Omega_2$*,
+1. *e1* has a set of possible values $\Omega_1$,
+2. *e2* has a set of possible values $\Omega_2$,
 
 Then:
 
-*$e1 \oplus e2$* has a set of possible values:
+$e1 \oplus e2$ has a set of possible values:
   $\{v1 \oplus v2 \mid (v1, v2) \in \Omega_1 \times \Omega_2\}$
 
-This means that the possible values of *$e1 \oplus e2$* are obtained by applying the operator *$\oplus$* to all pairs *(v1, v2)* where *$v1 \in \Omega_1$ and $v2 \in \Omega_2$*.
+This means that the possible values of $e1 \oplus e2$ are obtained by applying the operator $\oplus$ to all pairs *(v1, v2)* where $v1 \in \Omega_1$ and $v2 \in \Omega_2$.
 
 ### Integration of UCP and SMT Solver
 
