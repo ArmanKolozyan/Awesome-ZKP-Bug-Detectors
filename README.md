@@ -6,8 +6,8 @@ A collection of awesome Zero-Knowledge Proof (ZKP) bug detection tools, includin
 
 | Tool           | Target | Analysis       | Explanation                       | Documentation                                                                             | Code |
 | -------------- | ------ | -------------- | --------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
-| Circomspect    | Circom | Taint Analysis | [Circomspect](#circomspect)       | [blog](https://blog.trailofbits.com/2022/09/15/it-pays-to-be-circomspect/)                | [repository](https://github.com/trailofbits/circomspect)     |
-| ZKAP           |        |                | [ZKAP](#zkap)                     | [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/wen)              |      |
+| Circomspect    | Circom | Taint Analysis | [Circomspect](#circomspect)       | [blog](https://blog.trailofbits.com/2022/09/15/it-pays-to-be-circomspect/)                | [repository](https://github.com/trailofbits/circomspect)     |  
+| ZKAP           | Circom       |   Semantic Pattern Matching             | [ZKAP](#zkap)                     | [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/wen)              | [repository](https://github.com/whbjzzwjxq/ZKAP)     |
 | Picus          |        |                | [Picus](#picus)                   | [paper](https://dl.acm.org/doi/10.1145/3591282)                                           |      |
 | Coda           |        |                | [Coda](#coda)                     | [paper](https://www.computer.org/csdl/proceedings-article/sp/2024/313000a078/1RjEaNkBQIg) |      |
 | Signal Tagging |        |                | [Signal Tagging](#signal-tagging) | [docs](https://docs.circom.io/circom-language/tags/)                                      |      |
@@ -47,11 +47,11 @@ template T(n) {
    - `tmp <== 2 * in`: Adds a direct constraint between `in` and `tmp`.
    - `out <== in * in`: Adds a direct constraint between `in` and `out`.
 - **Result**:
-   - A **Constraint Map** is created, which includes `in → {tmp, out}`.
+   - A *Constraint Map* is created, which includes `in → {tmp, out}`.
 
 #### Use Case
 
-Constraint Analysis provides important information for **Side-Effect Analysis**, which is explained further in this section.
+Constraint Analysis provides important information for *Side-Effect Analysis*, which is explained further in this section.
 
 ### 2. Taint Analysis
 
@@ -87,7 +87,7 @@ template TaintExample(m, n) {
 - `n` taints `i` since the update `i++` depends on the condition `i < n`
 - `n` taints `right` since `right[i] = 0` depends on on the condition `i < n`
 
-#### **Use Case 1: Detecting Under-Constrained Signals**
+#### Use Case 1: Detecting Under-Constrained Signals
 
 Taint analysis is used to ensure intermediate signals are sufficiently constrained. 
 A signal must participate in at least two constraints: one defining its value and another restricting or using it. If not, it is flagged as under-constrained.
@@ -118,7 +118,7 @@ template Test(n) {
             }
 ```            
 
-#### **Use Case 2: Side-Effect Analysis**
+#### Use Case 2: Side-Effect Analysis
 
 Side-effect analysis identifies side-effect-free local variables and intermediate signals. Specifically, a variable is flagged as side-effect free if it does not flow into:
 
@@ -149,7 +149,82 @@ Both analyses are essential: taint analysis captures the flow of data, while con
 
 ## ZKAP
 
+ZKAP is a static analysis framework developed to enhance the security of Circom circuits. 
+ZKAP identifies a wide range of vulnerabilities, including:
 
+1. *Unconstrained Signals*: Input or output signals that are not sufficiently constrained, either by constants or by input dependencies. Examples include:
+   - **Unconstrained Circuit Outputs (UCO)**: Outputs that are neither constrained to constants nor depend transitively on inputs.  
+   - **Unconstrained Sub-Circuit Inputs (USCI)**: Inputs to components that are expected to be constrained externally but are not, leading to potential misuse.
+
+2. *Semantic Mismatches*: Discrepancies between the circuit's data flow (computational logic) and its constraint logic. This category includes:  
+   - **Dataflow-Constraint Discrepancies (DCD)**: Cases where a signal depends on another during witness computation but is not properly constrained by it, causing inconsistencies between computation and verification.  
+   - **Type Mismatch (TM)**: Instances where the witness calculation and constraints enforce different expectations for a signal’s type, such as mismatched range checks.
+
+3. *Improper Component Use*: Issues arising from incorrect or incomplete usage of circuit components, which can introduce security flaws, including:
+   - **Unconstrained Sub-Circuit Outputs (USCO)**: Component outputs that do not influence the calling circuit due to missing constraints at the call site.  
+   - **Assignment Misuse (AM)**: Using `<--` for assignments where `<==` (constraint operator) is required.  
+   - **Non-Deterministic Dataflow (NDD)**: Conditional assignments based on signals (and not on template variables), which are prone to errors.  
+
+4. *Critical Errors in Arithmetic Logic*: Vulnerabilities specific to the arithmetic handling of signals:
+   - **Division-by-Zero (DBZ)**: Division expressions that are dependent on input signals without proper constraints, causing computation-constraint divergence.  
+
+5. *Warnings for Potentially Problematic Patterns*:  
+   - **Unconstrained Signals (US)**: Flags unconstrained intermediate signals which, while not always a bug, could signal potential inefficiencies or vulnerabilities.
+
+
+### Analysis Technique
+
+### Circuit Dependence Graph (CDG)
+
+ZKAP uses a *Circuit Dependence Graph (CDG)* to model the internal relationships within Circom circuits. The CDG incorporates:
+
+- **Computational Data Flow**: Traces the propagation of data through assignments, computations, and signal dependencies.  
+- **Constraint Logic**: Models how signals are constrained and interrelated.
+
+Each CDG node represents a signal or constant, while edges encode:
+
+1. *Data Flow Dependencies*: Indicate how signals are influenced by others through computations or assignments, which can be derived from the assignment operators (e.g., `<--` and `<==`)
+2. *Constraint Dependencies*: Represent signals appearing in the same constraint, which can be derived from the constraint operators (e.g., `===` and `<==`)
+
+At a high level, a data flow edge from *v* to *u* labeled by *s* indicates that the value of *u* directly depends on *v* due to an
+assignment to *u* of an expression *s* containing *v*. Similarly, a constraint edge between *u* and *v* labeled *s* indicates that there is an equation *s* directly relating *u* and *v*.
+(The above description is wrong in the paper, I corrected it here.)
+
+### Vulnerability Description Language (VDL)
+
+ZKAP introduces the *Vulnerability Description Language (VDL)*, allowing users to define vulnerability patterns at the semantic level over the CDG representation.
+
+#### How VDL Works
+
+1. **Custom Patterns**: VDL allows users to describe, in Datalog-like syntax, vulnerabilities as patterns in the CDG, such as unconstrained outputs or mismatches between input signals and constraints.  
+2. **Semantic Matching**: ZKAP matches these patterns against the CDG to detect issues, such as *Unconstrained Circuit Outputs (UCO)* or *Dataflow-Constraint Discrepancies (DCD)*.  
+
+#### Example
+
+A VDL pattern to identify *Unconstrained Circuit Outputs (UCO)* could be:
+```vdlang
+sigDep(v) :- sig(u), cEdge+(u,v)
+isConst(v) :- cEdge+(u,v), const(u), !sigDep(v)
+inDep(v) :- in(u), cEdge+(u,v)
+UCO(v) :- out(v), !isConst(v), !inDep(v)
+```
+This anti-pattern specification introduces three auxiliary predicates:
+
+1. **`sigDep(v)`**: This predicate indicates that `v` is dependent on some other signal.  
+2. **`isConst(v)`**: This predicate evaluates to `true` if `v` is only dependent on a constant, meaning it must be constrained to a constant.  
+3. **`inDep(v)`**: This predicate checks whether `v` is dependent on an input signal.  
+
+Using these predicates, an output signal is classified as unconstrained if it is neither:  
+- (a) constrained to be a constant, nor  
+- (b) dependent on an input signal. 
+
+### Key Features
+
+1. *Predefined Detectors*: ZKAP includes nine predefined vulnerability checkers.
+
+2. *High Precision and Recall*: ZKAP’s semantic approach minimises false positives and negatives, achieving superior precision (82.4%) and recall (96.6%).  
+
+3. *Evaluation*: Tested on *258 Circom circuits* across 17 projects, ZKAP identified *32 previously unknown vulnerabilities*.
 
 ---
 
