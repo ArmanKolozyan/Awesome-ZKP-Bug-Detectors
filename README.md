@@ -4,13 +4,13 @@ A collection of awesome Zero-Knowledge Proof (ZKP) bug detection tools, includin
 
 ## Summary
 
-| Tool           | Target | Analysis       | Explanation                       | Documentation                                                                             | Code |
-| -------------- | ------ | -------------- | --------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
-| Circomspect    | Circom | Taint Analysis | [Circomspect](#circomspect)       | [blog](https://blog.trailofbits.com/2022/09/15/it-pays-to-be-circomspect/)                | [repository](https://github.com/trailofbits/circomspect)     |  
-| ZKAP           | Circom       |   Semantic Pattern Matching             | [ZKAP](#zkap)                     | [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/wen)              | [repository](https://github.com/whbjzzwjxq/ZKAP)     |
-| Picus          |        |                | [Picus](#picus)                   | [paper](https://dl.acm.org/doi/10.1145/3591282)                                           |      |
-| Coda           |        |                | [Coda](#coda)                     | [paper](https://www.computer.org/csdl/proceedings-article/sp/2024/313000a078/1RjEaNkBQIg) |      |
-| Signal Tagging |        |                | [Signal Tagging](#signal-tagging) | [docs](https://docs.circom.io/circom-language/tags/)                                      |      |
+| Tool           | Target   | Analysis                  | Explanation                       | Documentation                                                                             | Code                                                     |
+| -------------- | -------- | ------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Circomspect    | Circom   | Taint Analysis            | [Circomspect](#circomspect)       | [blog](https://blog.trailofbits.com/2022/09/15/it-pays-to-be-circomspect/)                | [repository](https://github.com/trailofbits/circomspect) |
+| ZKAP           | Circom   | Semantic Pattern Matching | [ZKAP](#zkap)                     | [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/wen)              | [repository](https://github.com/whbjzzwjxq/ZKAP)         |
+| Picus          | Circuits | UCP & SMT                 | [Picus](#picus)                   | [paper](https://dl.acm.org/doi/10.1145/3591282)                                           |     [repository](https://github.com/Veridise/Picus)                                                     |
+| Coda           |          |                           | [Coda](#coda)                     | [paper](https://www.computer.org/csdl/proceedings-article/sp/2024/313000a078/1RjEaNkBQIg) |                                                          |
+| Signal Tagging |          |                           | [Signal Tagging](#signal-tagging) | [docs](https://docs.circom.io/circom-language/tags/)                                      |                                                          |
 
 ## Circomspect
 
@@ -44,19 +44,19 @@ template T(n) {
 ```
 
 - **Constraints**:
-   - `tmp <== 2 * in`: Adds a direct constraint between `in` and `tmp`.
-   - `out <== in * in`: Adds a direct constraint between `in` and `out`.
+  - `tmp <== 2 * in`: Adds a direct constraint between `in` and `tmp`.
+  - `out <== in * in`: Adds a direct constraint between `in` and `out`.
 - **Result**:
-   - A *Constraint Map* is created, which includes `in → {tmp, out}`.
+  - A _Constraint Map_ is created, which includes `in → {tmp, out}`.
 
 #### Use Case
 
-Constraint Analysis provides important information for *Side-Effect Analysis*, which is explained further in this section.
+Constraint Analysis provides important information for _Side-Effect Analysis_, which is explained further in this section.
 
 ### 2. Taint Analysis
 
 Taint analysis differs from constraint analysis in that it focuses on the flow of data through the program, rather than just the constraints themselves.
-Taint analysis thus also considers constructs like *substitutions* (`<--`), where written variables are tainted by the variables they depend on, and *conditional branches* (`if-then-else`), where a variable used in a non-constant condition taints all variables assigned within the conditional body. 
+Taint analysis thus also considers constructs like _substitutions_ (`<--`), where written variables are tainted by the variables they depend on, and _conditional branches_ (`if-then-else`), where a variable used in a non-constant condition taints all variables assigned within the conditional body.
 
 Taint Analysis is implemented in [`taint_analysis.rs`](https://github.com/trailofbits/circomspect/blob/main/program_analysis/src/taint_analysis.rs).
 It tracks how values propagate through the circuit via a _Taint Map_. That map is used to ensure all constraints and outputs are correctly influenced by inputs or other constrained variables.
@@ -82,14 +82,13 @@ template TaintExample(m, n) {
         }
 ```
 
-
-- `m` taints `right` since `right` is declared as an `m` dimensional array. 
+- `m` taints `right` since `right` is declared as an `m` dimensional array.
 - `n` taints `i` since the update `i++` depends on the condition `i < n`
 - `n` taints `right` since `right[i] = 0` depends on on the condition `i < n`
 
 #### Use Case 1: Detecting Under-Constrained Signals
 
-Taint analysis is used to ensure intermediate signals are sufficiently constrained. 
+Taint analysis is used to ensure intermediate signals are sufficiently constrained.
 A signal must participate in at least two constraints: one defining its value and another restricting or using it. If not, it is flagged as under-constrained.
 
 Example:
@@ -104,9 +103,10 @@ template Test(n) {
 }
 ```
 
-`b` is flagged as under-constrained because it does not propagate into any constraints. 
+`b` is flagged as under-constrained because it does not propagate into any constraints.
 
 No underconstrained signals are present in this example:
+
 ```circom
 template Test(n) {
               signal input a;
@@ -116,7 +116,7 @@ template Test(n) {
               b <== a * a;
               c <== a * b; // b is used here
             }
-```            
+```
 
 #### Use Case 2: Side-Effect Analysis
 
@@ -140,95 +140,219 @@ template SideEffectFree() {
     z <== x * 2;
 }
 ```
+
 `y` is flagged as side-effect free because its value does not propagate to outputs or constraints.
 
-In side-effect analysis, *taint analysis* is used to compute the set of variables tainted by input and output signals, forming an initial set of *sinks*. *Constraint analysis* then identifies variables that participate in constraints involving these sinks. It ensures that any variable that directly or indirectly constrains input or output sinks is included in the final set of "important" variables. 
+In side-effect analysis, _taint analysis_ is used to compute the set of variables tainted by input and output signals, forming an initial set of _sinks_. _Constraint analysis_ then identifies variables that participate in constraints involving these sinks. It ensures that any variable that directly or indirectly constrains input or output sinks is included in the final set of "important" variables.
 Both analyses are essential: taint analysis captures the flow of data, while constraint analysis verifies structural dependencies.
 
 ---
 
 ## ZKAP
 
-ZKAP is a static analysis framework developed to enhance the security of Circom circuits. 
+ZKAP is a static analysis framework developed to enhance the security of Circom circuits.
 ZKAP identifies a wide range of vulnerabilities, including:
 
-1. *Unconstrained Signals*: Input or output signals that are not sufficiently constrained, either by constants or by input dependencies. Examples include:
-   - **Unconstrained Circuit Outputs (UCO)**: Outputs that are neither constrained to constants nor depend transitively on inputs.  
+1. _Unconstrained Signals_: Input or output signals that are not sufficiently constrained, either by constants or by input dependencies. Examples include:
+
+   - **Unconstrained Circuit Outputs (UCO)**: Outputs that are neither constrained to constants nor depend transitively on inputs.
    - **Unconstrained Sub-Circuit Inputs (USCI)**: Inputs to components that are expected to be constrained externally but are not, leading to potential misuse.
 
-2. *Semantic Mismatches*: Discrepancies between the circuit's data flow (computational logic) and its constraint logic. This category includes:  
-   - **Dataflow-Constraint Discrepancies (DCD)**: Cases where a signal depends on another during witness computation but is not properly constrained by it, causing inconsistencies between computation and verification.  
+2. _Semantic Mismatches_: Discrepancies between the circuit's data flow (computational logic) and its constraint logic. This category includes:
+
+   - **Dataflow-Constraint Discrepancies (DCD)**: Cases where a signal depends on another during witness computation but is not properly constrained by it, causing inconsistencies between computation and verification.
    - **Type Mismatch (TM)**: Instances where the witness calculation and constraints enforce different expectations for a signal’s type, such as mismatched range checks.
 
-3. *Improper Component Use*: Issues arising from incorrect or incomplete usage of circuit components, which can introduce security flaws, including:
-   - **Unconstrained Sub-Circuit Outputs (USCO)**: Component outputs that do not influence the calling circuit due to missing constraints at the call site.  
-   - **Assignment Misuse (AM)**: Using `<--` for assignments where `<==` (constraint operator) is required.  
-   - **Non-Deterministic Dataflow (NDD)**: Conditional assignments based on signals (and not on template variables), which are prone to errors.  
+3. _Improper Component Use_: Issues arising from incorrect or incomplete usage of circuit components, which can introduce security flaws, including:
 
-4. *Critical Errors in Arithmetic Logic*: Vulnerabilities specific to the arithmetic handling of signals:
-   - **Division-by-Zero (DBZ)**: Division expressions that are dependent on input signals without proper constraints, causing computation-constraint divergence.  
+   - **Unconstrained Sub-Circuit Outputs (USCO)**: Component outputs that do not influence the calling circuit due to missing constraints at the call site.
+   - **Assignment Misuse (AM)**: Using `<--` for assignments where `<==` (constraint operator) is required.
+   - **Non-Deterministic Dataflow (NDD)**: Conditional assignments based on signals (and not on template variables), which are prone to errors.
 
-5. *Warnings for Potentially Problematic Patterns*:  
+4. _Critical Errors in Arithmetic Logic_: Vulnerabilities specific to the arithmetic handling of signals:
+
+   - **Division-by-Zero (DBZ)**: Division expressions that are dependent on input signals without proper constraints, causing computation-constraint divergence.
+
+5. _Warnings for Potentially Problematic Patterns_:
    - **Unconstrained Signals (US)**: Flags unconstrained intermediate signals which, while not always a bug, could signal potential inefficiencies or vulnerabilities.
-
 
 ### Analysis Technique
 
 #### Circuit Dependence Graph (CDG)
 
-ZKAP uses a *Circuit Dependence Graph (CDG)* to model the internal relationships within Circom circuits. The CDG incorporates:
+ZKAP uses a _Circuit Dependence Graph (CDG)_ to model the internal relationships within Circom circuits. The CDG incorporates:
 
-- **Computational Data Flow**: Traces the propagation of data through assignments, computations, and signal dependencies.  
+- **Computational Data Flow**: Traces the propagation of data through assignments, computations, and signal dependencies.
 - **Constraint Logic**: Models how signals are constrained and interrelated.
 
 Each CDG node represents a signal or constant, while edges encode:
 
-1. *Data Flow Dependencies*: Indicate how signals are influenced by others through computations or assignments, which can be derived from the assignment operators (e.g., `<--` and `<==`)
-2. *Constraint Dependencies*: Represent signals appearing in the same constraint, which can be derived from the constraint operators (e.g., `===` and `<==`)
+1. _Data Flow Dependencies_: Indicate how signals are influenced by others through computations or assignments, which can be derived from the assignment operators (e.g., `<--` and `<==`)
+2. _Constraint Dependencies_: Represent signals appearing in the same constraint, which can be derived from the constraint operators (e.g., `===` and `<==`)
 
-At a high level, a data flow edge from *v* to *u* labeled by *s* indicates that the value of *u* directly depends on *v* due to an
-assignment to *u* of an expression *s* containing *v*. Similarly, a constraint edge between *u* and *v* labeled *s* indicates that there is an equation *s* directly relating *u* and *v*.
+At a high level, a data flow edge from _v_ to _u_ labeled by _s_ indicates that the value of _u_ directly depends on _v_ due to an
+assignment to _u_ of an expression _s_ containing _v_. Similarly, a constraint edge between _u_ and _v_ labeled _s_ indicates that there is an equation _s_ directly relating _u_ and _v_.
 (The above description is wrong in the paper, I corrected it here.)
 
 #### Vulnerability Description Language (VDL)
 
-ZKAP introduces the *Vulnerability Description Language (VDL)*, allowing users to define vulnerability patterns at the semantic level over the CDG representation.
+ZKAP introduces the _Vulnerability Description Language (VDL)_, allowing users to define vulnerability patterns at the semantic level over the CDG representation.
 
 ##### How VDL Works
 
-1. **Custom Patterns**: VDL allows users to describe, in Datalog-like syntax, vulnerabilities as patterns in the CDG, such as unconstrained outputs or mismatches between input signals and constraints.  
-2. **Semantic Matching**: ZKAP matches these patterns against the CDG to detect issues, such as *Unconstrained Circuit Outputs (UCO)* or *Dataflow-Constraint Discrepancies (DCD)*.  
+1. **Custom Patterns**: VDL allows users to describe, in Datalog-like syntax, vulnerabilities as patterns in the CDG, such as unconstrained outputs or mismatches between input signals and constraints.
+2. **Semantic Matching**: ZKAP matches these patterns against the CDG to detect issues, such as _Unconstrained Circuit Outputs (UCO)_ or _Dataflow-Constraint Discrepancies (DCD)_.
 
 ##### Example
 
-A VDL pattern to identify *Unconstrained Circuit Outputs (UCO)* could be:
+A VDL pattern to identify _Unconstrained Circuit Outputs (UCO)_ could be:
+
 ```vdlang
 sigDep(v) :- sig(u), cEdge+(u,v)
 isConst(v) :- cEdge+(u,v), const(u), !sigDep(v)
 inDep(v) :- in(u), cEdge+(u,v)
 UCO(v) :- out(v), !isConst(v), !inDep(v)
 ```
+
 This anti-pattern specification introduces three auxiliary predicates:
 
-1. **`sigDep(v)`**: This predicate indicates that `v` is dependent on some other signal.  
-2. **`isConst(v)`**: This predicate evaluates to `true` if `v` is only dependent on a constant, meaning it must be constrained to a constant.  
-3. **`inDep(v)`**: This predicate checks whether `v` is dependent on an input signal.  
+1. **`sigDep(v)`**: This predicate indicates that `v` is dependent on some other signal.
+2. **`isConst(v)`**: This predicate evaluates to `true` if `v` is only dependent on a constant, meaning it must be constrained to a constant.
+3. **`inDep(v)`**: This predicate checks whether `v` is dependent on an input signal.
 
-Using these predicates, an output signal is classified as unconstrained if it is neither:  
-- (a) constrained to be a constant, nor  
-- (b) dependent on an input signal. 
+Using these predicates, an output signal is classified as unconstrained if it is neither:
+
+- (a) constrained to be a constant, nor
+- (b) dependent on an input signal.
 
 ### Key Features
 
-1. *Predefined Detectors*: ZKAP includes nine predefined vulnerability checkers.
+1. _Predefined Detectors_: ZKAP includes nine predefined vulnerability checkers.
 
-2. *High Precision and Recall*: ZKAP’s semantic approach minimises false positives and negatives, achieving superior precision (82.4%) and recall (96.6%).  
+2. _High Precision and Recall_: ZKAP’s semantic approach minimises false positives and negatives, achieving superior precision (82.4%) and recall (96.6%).
 
-3. *Evaluation*: Tested on *258 Circom circuits* across 17 projects, ZKAP identified *32 previously unknown vulnerabilities*.
+3. _Evaluation_: Tested on 258 Circom circuits_ across 17 projects, ZKAP identified _32 previously unknown vulnerabilities_.
 
 ---
 
 ## Picus
+
+Picus is a language-agnostic tool designed to detect under-constrained circuits given polynomial equations generated by the compiler (rather than Circom programs
+themselves). It combines **lightweight static analysis (Uniqueness Constraint Propagation)** and **SMT-based reasoning** to identify whether all output variables in a circuit are fully constrainedy.
+
+### Analysis Technique
+
+#### 1. Uniqueness Constraint Propagation (UCP)
+
+UCP is a static analysis phase that iteratively propagates constraints through the circuit to determine whether each output variable is uniquely defined by the inputs. It relies on three core inference rules: **Var**, **Const**, and **Op**.
+
+##### Inference Rules
+
+1. **Var Rule**:
+
+   - Any variable in the set _K_ (the set of already-proven constrained variables) is considered constrained. This rule provides the starting point for UCP, where _K_ typically includes input variables and other explicitly constrained signals.
+
+2. **Const Rule**:
+
+   - Constants are inherently constrained because their values are fixed and independent of other variables.
+
+3. **Op Rule**:
+   - If a more complex expression _e_ is defined as _e1 $\oplus$ e2_, where $\oplus$ is an arithmetic or logical operator (e.g., addition, multiplication), then _e_ is constrained if both _e1_ and _e2_ are constrained.
+
+In addition to the basic rules, Picus employs more complex inference rules to handle intricate relationships between variables. One important example is the **Assign Rule**:
+
+- If the circuit contains an equation of the form *$ c \cdot x - e = 0$*, and:
+  - *e* is inferred to be constrained.
+  - *$c \neq 0$* (a non-zero constant).
+- Then, *x* can also be inferred to be constrained because the equation can be rewritten as $ x = c^{-1} \cdot e $   
+
+##### How UCP Propagates Constraints
+
+1. **Initial Assumptions**:
+
+   - UCP begins with a set _K_, which contains variables that are already known to be constrained. Typically, this set includes:
+     - Input variables, as they are externally provided and fixed.
+     - Constants, which are inherently constrained.
+
+2. **Recursive Application of Rules**:
+   - UCP applies rules such as the *Op* rule to propagate constraints through the circuit:
+     - If _e1_ and _e2_ are constrained, their combined result _e = e1 $\oplus$ e2_ is also constrained.
+
+##### Limitations of UCP:
+
+The paper explicitly states that **UCP alone cannot solve all under-constrained problems** because it cannot identify **pairs of witnesses** that demonstrate under-constrained behavior.
+
+Thus, the SMT solver complements UCP by addressing these limitations.
+
+#### 2. SMT Solver
+
+When UCP cannot constrain all variables, Picus invokes an SMT solver to formally verify the uniqueness of remaining variables.
+
+##### How the SMT Solver Works:
+
+1. **Duplicate Circuit Representation**:
+   - To verify whether a variable *v* is constrained, Picus encodes **two copies of the circuit**:
+     - The first copy uses the original variables *V*.
+     - The second copy uses a duplicate set of variables *V'*.
+   - The SMT solver is tasked with determining whether any two satisfying assignments that agree on the input variables also agree on 𝑣 (i.e., v = v').
+
+2. **Strengthening with Constrained Variables**:
+   - Variables that have already been proven constrained by UCP (belonging to the set *K*) are used to strengthen the query. Specifically:
+     - For each *u $\in$ K*, the SMT query adds a condition *u = u'*.
+
+3. **SMT Query Formulation**:
+   - The SMT solver is given the following query:
+     - *$\Phi \land \Phi' \land \bigwedge_{u \in K} (u = u') \implies (v = v')$*,
+     where:
+       - *$\Phi$*: The circuit's constraints with the original variables *V*.
+       - *$\Phi'$*: The circuit's constraints with the duplicate variables *V'*.
+       - *$\bigwedge_{u \in K} (u = u')$*: Strengthening conditions for variables already proven constrained.
+     - The solver verifies whether this implication holds. If true, *v* is uniquely constrained.
+
+4. **Encoding Value Information**:
+   - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable *w*, its possible values are partitioned into intervals *(l, u)*, so that the solver checks only valid ranges:
+     - For example, if *w* can take values in the range *[1, 10]*, the solver includes constraints *$1 \leq w \leq 10$*.
+   - These intervals are encoded as disjunctions for efficiency, allowing the SMT solver to focus on feasible solutions.
+
+#### 3. Value Inference
+
+Value inference is used to narrow the possible values for variables in the circuit. This information is for example leveraged during SMT-based reasoning to simplify queries and improve efficiency.  Rules like the **Assign Rule** and **Op Rule** are used for this.
+
+##### Assign Rule
+The **Assign Rule** is applied when a circuit contains an equation of the form:
+
+$c \cdot x - e = 0 \quad \text{where} \quad c \neq 0.$
+
+When we rearrange the equation to isolate *x*, we get:
+$x = c^{-1} \cdot e$
+
+This implies that the possible values for *x* are derived by multiplying the values of *e* by the inverse of *c*.
+
+##### Op Rule
+If:
+1. *e1* has a set of possible values *$\Omega_1$*,
+2. *e2* has a set of possible values *$\Omega_2$*,
+
+Then:
+
+*$e1 \oplus e2$* has a set of possible values:
+  $\{v1 \oplus v2 \mid (v1, v2) \in \Omega_1 \times \Omega_2\}$
+
+This means that the possible values of *$e1 \oplus e2$* are obtained by applying the operator *$\oplus$* to all pairs *(v1, v2)* where *$v1 \in \Omega_1$ and $v2 \in \Omega_2$*.
+
+### Integration of UCP and SMT Solver
+
+Picus combines UCP and SMT reasoning in an iterative process:
+
+1. UCP initially identifies constrained variables.
+2. If variables remain unconstrained, SMT queries are generated for verification.
+3. Results from the SMT solver update the set of constrained variables, enabling further propagation by UCP.
+
+This iterative process continues until:
+
+- All outputs are verified as constrained.
+- A counterexample to uniqueness of a query variable 𝑞, which corresponds to an output of the circuit, is found.
+- No further progress can be made.
 
 ---
 
