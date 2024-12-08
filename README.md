@@ -275,7 +275,7 @@ In addition to the basic rules, Picus employs more complex inference rules to ha
      - Constants, which are inherently constrained.
 
 2. **Recursive Application of Rules**:
-   - UCP applies rules such as the _Op_ rule to propagate constraints through the circuit: $\\$
+   - UCP applies rules such as the _Op_ rule to propagate constraints through the circuit: <br/>
       If _e1_ and _e2_ are constrained, their combined result _e = e1_ $\oplus$ _e2_ is also constrained.
 
 ##### Limitations
@@ -299,7 +299,7 @@ When UCP cannot constrain all variables, Picus invokes an SMT solver to formally
 
 2. **Strengthening with Constrained Variables**:
 
-   - Variables that have already been proven constrained by UCP (belonging to the set _K_) are used to strengthen the query. Specifically: $\\$
+   - Variables that have already been proven constrained by UCP (belonging to the set _K_) are used to strengthen the query. Specifically: <br/>
      For each _u_ $\in$ _K_, the SMT query adds a condition _u = u'_.
 
 3. **SMT Query Formulation**:
@@ -313,7 +313,7 @@ When UCP cannot constrain all variables, Picus invokes an SMT solver to formally
      - The solver verifies whether this implication holds. If true, _v_ is uniquely constrained.
 
 4. **Encoding Value Information**:
-   - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable _w_, its possible values are partitioned into intervals _(l, u)_, so that the solver checks only valid ranges: $\\$
+   - Picus incorporates **interval-based constraints** to further simplify the SMT query. For each variable _w_, its possible values are partitioned into intervals _(l, u)_, so that the solver checks only valid ranges: <br/>
    For example, if _w_ can take values in the range _[1, 10]_, the solver includes constraints $1 \leq w \leq 10$.
    - These intervals are encoded as disjunctions for efficiency, allowing the SMT solver to focus on feasible solutions.
 
